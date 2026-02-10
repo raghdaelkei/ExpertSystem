@@ -9,7 +9,7 @@ This expert system guides users through a series of questions about their projec
 **Current Version**: Currently supports Arduino Uno and Arduino MKR WiFi 1010 as a proof of concept. **Additional boards will be added in future iterations.**
 
 **Developed for**: COMP 474/6741 - Intelligent Systems, Concordia University  
-**Inspired by**: [How to Choose the Right Arduino Board for Your Project](https://predictabledesigns.com) by Predictable Designs
+**Inspired by**: [https://predictabledesigns.com/how-to-choose-the-right-arduino-board-for-your-project/] by Predictable Designs
 
 ##  Features
 
