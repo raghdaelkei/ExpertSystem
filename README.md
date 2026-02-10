@@ -24,35 +24,26 @@ This expert system guides users through a series of questions about their projec
 ##  Roadmap
 
 ### Current Status (v1.0)
-- ✅ Core expert system framework
-- ✅ Deterministic reasoning engine
-- ✅ Two board profiles (Uno, MKR WiFi 1010)
-- ✅ Four decision criteria (WiFi, sensors, I/O, battery)
+-  Core expert system framework
+-  Deterministic reasoning engine
+-  Two board profiles (Uno, MKR WiFi 1010)
+-  Four decision criteria (WiFi, sensors, I/O, battery)
 
 ### Coming Soon
-- 🔄 **Expanding Board Database** - Adding popular boards including:
+-  **Expanding Board Database** - Adding popular boards including:
   - Arduino Mega (for high I/O requirements)
   - Arduino Nano (compact general-purpose)
   - Arduino Leonardo (USB HID capabilities)
   - Arduino Due (32-bit processing power)
   - Arduino Nano 33 series (BLE, IoT variants)
-- 🔄 Additional decision criteria
-- 🔄 Possibilistic reasoning for uncertain requirements
-- 🔄 Probabilistic reasoning with confidence levels
+    
+- Additional decision criteria
+- Possibilistic reasoning for uncertain requirements
+- Probabilistic reasoning with confidence levels
 
-## 🗂️ Project Structure
-EXPERTSYSTEM/
-├── main.clp # Entry point - loads all modules
-├── facts/
-│ ├── deterministic-facts.clp # Board features and templates
-│ ├── possibilistic-facts.clp # [Placeholder for future work]
-│ └── probabilistic-facts.clp # [Placeholder for future work]
-└── rules/
-├── deterministic-rules.clp # Decision rules and logic
-├── possibilistic-rules.clp # [Placeholder for future work]
-└── probabilistic-rules.clp # [Placeholder for future work]
 
-Extensibility
+### Extensibility
+
 The modular design allows easy expansion:
 
 Add boards: Simply extend the board-knowledge deffacts in deterministic-facts.clp
