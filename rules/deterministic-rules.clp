@@ -1,7 +1,7 @@
 ; =========================
 ; rules/deterministic-rules.clp
 ; =========================
-
+;42 deterministic rules
 ; Normalize yes/no input
 (defrule read-yes-no
   ?q <- (ask (slotname ?s) (prompt ?p))
@@ -20,14 +20,14 @@
 (defrule start-system
   ?ph <- (phase (name start))
   =>
-  (printout t crlf "arduino board expert system" crlf)
+  (printout t crlf "microcontroller & sbc expert system" crlf)
   (printout t "answer using: yes / no" crlf crlf)
   (retract ?ph)
   (assert (phase (name ask-high-perf)))
 )
 
 ; ---------------- QUESTIONS ----------------
-; Chain: high-perf -> lora -> sigfox -> wifi -> ble -> audio -> battery -> sensors -> io -> smd -> decide
+; Chain: high-perf -> lora -> sigfox -> wifi -> ble -> audio -> battery -> sensors -> io -> smd -> ethernet -> baseboard -> decide
 
 (defrule ask-high-perf
   ?ph <- (phase (name ask-high-perf))
@@ -176,25 +176,66 @@
   ?n <- (need (item smd) (value unknown))
   =>
   (retract ?a ?n) (assert (need (item smd) (value ?val)))
+  (retract ?ph) (assert (phase (name ask-ethernet)))
+)
+
+; --- RASPBERRY PI QUESTIONS ---
+
+(defrule ask-ethernet
+  ?ph <- (phase (name ask-ethernet))
+  =>
+  (assert (ask (slotname ethernet) (prompt "do you need a built-in hardware Ethernet port? (yes/no)")))
+  (retract ?ph) (assert (phase (name wait-ethernet)))
+)
+(defrule store-ethernet
+  ?ph <- (phase (name wait-ethernet))
+  ?a <- (answer (slotname ethernet) (value ?val))
+  ?n <- (need (item ethernet) (value unknown))
+  =>
+  (retract ?a ?n) (assert (need (item ethernet) (value ?val)))
+  (retract ?ph) (assert (phase (name ask-baseboard)))
+)
+
+(defrule ask-baseboard
+  ?ph <- (phase (name ask-baseboard))
+  =>
+  (assert (ask (slotname baseboard) (prompt "are you designing a custom industrial baseboard to host a compute module? (yes/no)")))
+  (retract ?ph) (assert (phase (name wait-baseboard)))
+)
+(defrule store-baseboard
+  ?ph <- (phase (name wait-baseboard))
+  ?a <- (answer (slotname baseboard) (value ?val))
+  ?n <- (need (item baseboard) (value unknown))
+  =>
+  (retract ?a ?n) (assert (need (item baseboard) (value ?val)))
   (retract ?ph) (assert (phase (name decide)))
 )
 
 ; =========================
-; DECISION RULES (9 boards)
+; DECISION RULES (Strict Constraints)
 ; =========================
+
+; --- ARDUINO DECISION RULES ---
 
 (defrule recommend-uno-q
   (phase (name decide))
   (need (item high-perf) (value yes))
+  (need (item lora) (value no))
+  (need (item sigfox) (value no))
+  (need (item ethernet) (value no))
+  (need (item baseboard) (value no))
   =>
   (assert (recommendation (board uno-q-4gb)))
-  (assert (reason (text "high performance or Linux is required; the uno q 4gb handles complex processing")))
+  (assert (reason (text "high performance Linux is required without ethernet or LPWAN; the uno q 4gb handles complex processing in an arduino form factor")))
 )
 
 (defrule recommend-mkr-wan
   (phase (name decide))
   (need (item high-perf) (value no))
   (need (item lora) (value yes))
+  (need (item sigfox) (value no))
+  (need (item ethernet) (value no))
+  (need (item baseboard) (value no))
   =>
   (assert (recommendation (board mkr-wan-1310)))
   (assert (reason (text "lora/lorawan connectivity is required for long range communication")))
@@ -205,6 +246,8 @@
   (need (item high-perf) (value no))
   (need (item lora) (value no))
   (need (item sigfox) (value yes))
+  (need (item ethernet) (value no))
+  (need (item baseboard) (value no))
   =>
   (assert (recommendation (board mkr-fox-1200)))
   (assert (reason (text "sigfox connectivity is needed for european network infrastructure")))
@@ -216,6 +259,8 @@
   (need (item lora) (value no))
   (need (item sigfox) (value no))
   (need (item audio) (value yes))
+  (need (item ethernet) (value no))
+  (need (item baseboard) (value no))
   =>
   (assert (recommendation (board mkr-zero)))
   (assert (reason (text "audio/music processing is needed; the mkr zero features an I2S bus and SD card slot")))
@@ -223,10 +268,15 @@
 
 (defrule recommend-mkr-wifi-1010
   (phase (name decide))
-  (need (item high-perf) (value no)) (need (item lora) (value no)) (need (item sigfox) (value no)) (need (item audio) (value no))
+  (need (item high-perf) (value no)) 
+  (need (item lora) (value no)) 
+  (need (item sigfox) (value no)) 
+  (need (item audio) (value no))
   (need (item wifi) (value yes))
   (need (item ble) (value yes))
   (need (item battery) (value yes)) 
+  (need (item ethernet) (value no))
+  (need (item baseboard) (value no))
   =>
   (assert (recommendation (board mkr-wifi-1010)))
   (assert (reason (text "wifi, bluetooth, and battery efficiency are required; the mkr wifi 1010 handles all three perfectly")))
@@ -234,10 +284,15 @@
 
 (defrule recommend-mkr-1000-wifi
   (phase (name decide))
-  (need (item high-perf) (value no)) (need (item lora) (value no)) (need (item sigfox) (value no)) (need (item audio) (value no))
+  (need (item high-perf) (value no)) 
+  (need (item lora) (value no)) 
+  (need (item sigfox) (value no)) 
+  (need (item audio) (value no))
   (need (item wifi) (value yes))
   (need (item ble) (value no))
   (need (item battery) (value yes)) 
+  (need (item ethernet) (value no))
+  (need (item baseboard) (value no))
   =>
   (assert (recommendation (board mkr-1000-wifi)))
   (assert (reason (text "wifi and battery efficiency are needed without bluetooth; the mkr 1000 wifi provides basic iot connectivity")))
@@ -245,9 +300,14 @@
 
 (defrule recommend-uno-r4-wifi
   (phase (name decide))
-  (need (item high-perf) (value no)) (need (item lora) (value no)) (need (item sigfox) (value no)) (need (item audio) (value no))
+  (need (item high-perf) (value no)) 
+  (need (item lora) (value no)) 
+  (need (item sigfox) (value no)) 
+  (need (item audio) (value no))
   (need (item wifi) (value yes))
   (need (item battery) (value no)) 
+  (need (item ethernet) (value no))
+  (need (item baseboard) (value no))
   =>
   (assert (recommendation (board uno-r4-wifi)))
   (assert (reason (text "wifi is needed but not battery power; the uno r4 wifi provides wireless connectivity in a standard 5v form factor")))
@@ -255,9 +315,14 @@
 
 (defrule recommend-uno-r3-smd
   (phase (name decide))
-  (need (item high-perf) (value no)) (need (item lora) (value no)) (need (item sigfox) (value no)) (need (item audio) (value no))
+  (need (item high-perf) (value no)) 
+  (need (item lora) (value no)) 
+  (need (item sigfox) (value no)) 
+  (need (item audio) (value no))
   (need (item wifi) (value no))
   (need (item smd) (value yes))
+  (need (item ethernet) (value no))
+  (need (item baseboard) (value no))
   =>
   (assert (recommendation (board uno-r3-smd)))
   (assert (reason (text "a general-purpose board with an integrated SMD microcontroller chip was requested")))
@@ -265,9 +330,14 @@
 
 (defrule recommend-uno-r3-default
   (phase (name decide))
-  (need (item high-perf) (value no)) (need (item lora) (value no)) (need (item sigfox) (value no)) (need (item audio) (value no))
+  (need (item high-perf) (value no)) 
+  (need (item lora) (value no)) 
+  (need (item sigfox) (value no)) 
+  (need (item audio) (value no))
   (need (item wifi) (value no))
   (need (item smd) (value no))
+  (need (item ethernet) (value no))
+  (need (item baseboard) (value no))
   =>
   (assert (recommendation (board uno-r3)))
   (assert (reason (text "no special communication or performance requirements; the classic uno r3 with the removable dip chip is the standard choice")))
@@ -281,6 +351,89 @@
   (assert (warning (text "you need many i/o pins; consider adding an arduino mega in the future, as the basic uno and mkr boards have limited pins")))
 )
 
+; --- RASPBERRY PI DECISION RULES ---
+
+(defrule recommend-raspi-flagship
+  (phase (name decide))
+  (need (item high-perf) (value yes))
+  (need (item ethernet) (value yes))
+  (need (item baseboard) (value no))
+  (need (item lora) (value no))
+  (need (item sigfox) (value no))
+  =>
+  (assert (recommendation (board raspi-5)))
+  (assert (recommendation (board raspi-4b)))
+  (assert (recommendation (board raspi-3b)))
+  (assert (reason (text "high performance Linux processing and an ethernet port are required; the Raspberry Pi Flagship series provides these capabilities")))
+)
+
+(defrule recommend-raspi-zero-wifi
+  (phase (name decide))
+  (need (item high-perf) (value yes))
+  (need (item ethernet) (value no))
+  (need (item baseboard) (value no))
+  (need (item battery) (value yes))
+  (need (item wifi) (value yes))
+  (need (item lora) (value no))
+  (need (item sigfox) (value no))
+  =>
+  (assert (recommendation (board raspi-zero-2w)))
+  (assert (recommendation (board raspi-zero-w)))
+  (assert (reason (text "a compact, low-power Linux system with wifi is needed; the Raspberry Pi Zero W and Zero 2 W fit perfectly")))
+)
+
+(defrule recommend-raspi-zero-offline
+  (phase (name decide))
+  (need (item high-perf) (value yes))
+  (need (item ethernet) (value no))
+  (need (item baseboard) (value no))
+  (need (item battery) (value yes))
+  (need (item wifi) (value no))
+  (need (item lora) (value no))
+  (need (item sigfox) (value no))
+  =>
+  (assert (recommendation (board raspi-zero)))
+  (assert (reason (text "a compact Linux system is needed without wireless connectivity; the classic offline Raspberry Pi Zero is the most efficient choice")))
+)
+
+(defrule recommend-raspi-cm4
+  (phase (name decide))
+  (need (item high-perf) (value yes))
+  (need (item baseboard) (value yes))
+  (need (item wifi) (value yes))
+  (need (item lora) (value no))    
+  (need (item sigfox) (value no))  
+  =>
+  (assert (recommendation (board raspi-cm4)))
+  (assert (reason (text "an industrial compute module with wifi is required for a custom baseboard; the Raspberry Pi CM4 is highly recommended")))
+)
+
+(defrule recommend-raspi-cm-basic
+  (phase (name decide))
+  (need (item high-perf) (value yes))
+  (need (item baseboard) (value yes))
+  (need (item wifi) (value no))
+  (need (item lora) (value no))    
+  (need (item sigfox) (value no))  
+  =>
+  (assert (recommendation (board raspi-cm3)))
+  (assert (recommendation (board raspi-cm1)))
+  (assert (reason (text "an industrial compute module without wireless is required for a custom baseboard; the Raspberry Pi CM1 or CM3 is recommended")))
+)
+; ---------------- NO MATCH ERROR HANDLING ----------------
+(defrule no-match-found
+  (declare (salience -5)) ; Runs right before the standard print-result (which is -10)
+  (phase (name decide))
+  (not (recommendation (board ?))) ; Checks if NO recommendations were asserted
+  =>
+  (printout t crlf "==========================================" crlf)
+  (printout t " RECOMMENDED BOARDS " crlf)
+  (printout t "==========================================" crlf)
+  (printout t "-> No board has all these requirements natively." crlf)
+  (printout t "-> System terminating. Please run (reset) and (run) to try again with fewer constraints." crlf)
+  (printout t "==========================================" crlf crlf)
+  (halt) ; Instantly kills the inference engine, preventing Phase 2 and 3
+)
 ; =========================
 ; OUTPUT
 ; =========================
@@ -288,12 +441,17 @@
 (defrule print-result
   (declare (salience -10))
   ?ph <- (phase (name decide))
-  ?rec <- (recommendation (board ?b))
   =>
-  (printout t crlf "recommendation: " ?b crlf)
+  (printout t crlf "==========================================" crlf)
+  (printout t " RECOMMENDED BOARDS " crlf)
+  (printout t "==========================================" crlf)
+  
+  (do-for-all-facts ((?rec recommendation)) TRUE
+    (printout t "-> " ?rec:board crlf))
 
+  (printout t crlf "--- REASONS ---" crlf)
   (do-for-all-facts ((?r reason)) TRUE
-    (printout t "- reason: " ?r:text crlf))
+    (printout t "- " ?r:text crlf))
 
   (do-for-all-facts ((?w warning)) TRUE
     (printout t "- note: " ?w:text crlf))

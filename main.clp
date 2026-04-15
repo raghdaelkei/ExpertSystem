@@ -22,10 +22,10 @@
 ; Reset the environment (asserts all initial facts)
 (reset)
 
-; Helpful for debugging 
-(watch rules)
-(watch facts)
-(watch activations)
+; Helpful for debugging
+;(watch rules);
+;(watch facts
+;(watch activations)
 
 ; Start the inference engine
 (run)
